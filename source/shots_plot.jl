@@ -53,13 +53,13 @@ end
 
 function plot_sample_data(data)
     raw_plot = gplot("Raw shots", "Error")
-    plot!(raw_plot, xaxis = :log, yaxis = :log, legend = :topright)
+    plot!(raw_plot, xaxis = :log, yaxis = :log, legend = false)
 
     tot_plot = gplot("Total shots", "Mean infidelity")
-    plot!(tot_plot, xaxis = :log, yaxis = :identity, legend = :topright)
+    plot!(tot_plot, xaxis = :log, yaxis = :identity, legend = false)
 
     all_plot = gplot("Total shots", "Error")
-    plot!(all_plot, xaxis = :log, yaxis = :log, legend = :topright)
+    plot!(all_plot, xaxis = :log, yaxis = :log, legend = false)
 
     taus = sort(collect(keys(data)))
 
@@ -104,7 +104,7 @@ function plot_sample_data(data)
             ms = 5,
             marker = marker,
             color = color,
-            legend = :bottomleft,
+            legend = false,
         )
 
         scatter!(all_plot, τ_data[:, 2], τ_data[:, 3], label = label, ms = 7, color = color)
@@ -129,7 +129,7 @@ function plot_sv_fidelity!(plots, exp_num, result_loc = "results")
         elseif sum(setup["entanglement_args"].gate_indices) == 0
             τ = 1.0
         end
-        if !(τ in [-1, 1, 100, 1000, Inf])
+        if !(τ in [-1, 1, 100, 1000])
             continue
         end
 
@@ -137,6 +137,7 @@ function plot_sv_fidelity!(plots, exp_num, result_loc = "results")
         fid = mean([
             1 .- fidelity(state, solution) for (state, solution) in zip(states, solutions)
         ])
+
 
 
         for plot in plots

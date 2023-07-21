@@ -3,9 +3,10 @@ using Plots, LinearAlgebra
 using LaTeXStrings
 using Yao, JLD2
 using Measures
-#include("pvqd.jl")
+
 include("ansatz.jl")
 include("observables.jl")
+include("pvqd.jl")
 
 
 
@@ -18,7 +19,8 @@ end
 
 
 
-color_scheme = ["#fdd49e", "#fdbb84", "#fc8d59", "#e34a33", "#b30000"]
+
+color_scheme = ["#66C5CC", "#F6CF71", "#F89C74", "#DCB0F2", "#87C55F", "#B3B3B3"]
 
 "Get plotting styles according to the threshold."
 function styles(label; return_marker = false)
@@ -157,7 +159,7 @@ function prepare_data(exp_num::String, thresholds; results_loc = "results")
 end
 
 "Plot fidelity."
-function plot_fidelity(data, ex_states; options = nothing)
+function plot_fidelity(data, ex_states; options = nothing, infidelity = false)
     p = gplot("Time", "Fidelity", options)
     plot!(p, [0, 2], [1, 1], color = :dimgray, linewidth = 1, label = nothing)
 
@@ -168,6 +170,9 @@ function plot_fidelity(data, ex_states; options = nothing)
             for (time_index, state) in enumerate(plot_data.states)
                 fidelities[index, time_index] = fidelity(state, ex_states[time_index])
             end
+        end
+        if infidelity
+            fidelities = 1 .- fidelities
         end
         mean_fidelities = mean(fidelities, dims = 1)[1, :]
         lower_error =
@@ -351,9 +356,10 @@ function plot_fid_ovhd(data; options = nothing, scale = :log)
         1 .- fid_means,
         xaxis = scale,
         yaxis = :identity,
-        label = "Mean Infidelity",
+        label = false,
         color = :black,
     )
+    println(overhead_points)
     return p
 end
 
@@ -364,7 +370,7 @@ begin
     results_loc = "results" # Directory where results are stored
 
     # Thresholds to be plotted
-    thresholds = [-1.0, 1.0, 100, 1000, Inf] #, 10, 50, 500, 5, 25, 250, 5000]
+    thresholds = [-1.0, 1.0, 100, 1000, Inf]
 
     data, ex_states = prepare_data(num, thresholds, results_loc = results_loc)
 
@@ -399,13 +405,13 @@ begin
     savefig("plots/exp$(num)_$(obs[1][10:end-8]).svg")
 
 
-    thresholds = [-1.0, 1.0, 100, 1000, Inf, 10, 50, 500, 5, 25, 250, 5000]
+    thresholds = [-1.0, 1.0, 100, 1000, 10, 50, 500, 5, 25, 250, 5000]
     data, ex_states = prepare_data(num, thresholds, results_loc = results_loc)
 
     p_fo = plot_fid_ovhd(
         data,
         scale = :log10,
-        options = Dict("yaxis" => :left, "legend" => false),
+        options = Dict("yaxis" => :left, "legend" => :topright),
     )
 
     ylims!(p_fo, (0.0, 0.075))

@@ -1,7 +1,6 @@
 using Plots
 using LinearAlgebra
 using Yao, YaoExtensions
-using DataFrames
 using Measures
 
 include("hamiltonians.jl")
