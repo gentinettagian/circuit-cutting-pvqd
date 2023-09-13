@@ -1,4 +1,4 @@
-# Simulating large quantum systems on small quantum devices using circuit cutting
+# Overhead-constrained circuit knitting for variational quantum dynamics
 
 This repository contains the code and results necessary to reproduce the results in
 `G. Gentinetta, F. Metz, G. Carleo. Overhead-constrained circuit knitting for variational quantum dynamics. 2023`
