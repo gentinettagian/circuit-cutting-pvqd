@@ -49,7 +49,7 @@ function j1j2_pvqd(
 
     if cut_trotter
         trotter_step = graph_trotter(spins, edges, g, dt)
-        cut_overhead = sqrt(gamma(2 * J2 * dt))^2
+        cut_overhead = sqrt(gamma(2 * j2 * dt))^2
     else
         cut_edges = [j == j1 ? (edge, j) : (edge, 0) for (edge, j) in edges]
         trotter_step = graph_trotter(spins, cut_edges, g, dt)
@@ -77,7 +77,7 @@ end
 
 
 begin
-    num = "xxx"
+    num = "203"
     j1 = 1
     j2 = 0.25
     g = 1
@@ -94,18 +94,18 @@ begin
         ((2, 3), j2),
     ]
     dt = 0.05
-    n_steps = 3
-    depth = 3
+    n_steps = 40
+    depth = 2
 
     restrict_entanglement = true
-    cross_gates = [false for _ = 1:depth]
-    ent_args = EntanglementArgs(cross_gates, 10, 0.001, true, false)
+    cross_gates = [true for _ = 1:depth]
+    ent_args = EntanglementArgs(cross_gates, Inf, 0.001, true, true)
     rotations = :xx
     n_shots = nothing
     single_q_params = rotations == :full ? 3 : 1
-    initial_params = zeros(4 * (depth) + 4 * single_q_params * (depth + 1))
-    #initial_params =
-    #    zeros(depth * length(edges) + (depth + 1) * length(spins) * single_q_params)
+    #initial_params = zeros(4 * (depth) + 4 * single_q_params * (depth + 1))
+    initial_params =
+        zeros(depth * length(edges) + (depth + 1) * length(spins) * single_q_params)
     optimizer_args = OptimizerArgs(
         1e-3,
         nothing,
@@ -122,7 +122,7 @@ begin
     initial_delta = 0.00
 
 
-    cut_trotter = false
+    cut_trotter = true
     pvqd = j1j2_pvqd(
         spins,
         edges,
@@ -174,8 +174,8 @@ include("plot.jl")
 
 
 # Rename results to match pattern used for plotting
-main_num = 100
-nums = [] # numbers of experiments to bundle under main_num
+main_num = 200
+nums = [200, 201, 202, 203] # numbers of experiments to bundle under main_num
 for num in nums
     args = load_object("j1j2_results/$(num)/args")
     τ = args["ent_args"].threshold

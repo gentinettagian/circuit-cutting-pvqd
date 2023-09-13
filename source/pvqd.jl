@@ -356,7 +356,7 @@ function pvqd_step(pvqd::PVQD, params, delta, loss_and_grad::Function)
     dispatch!(compute_uncompute, x)
     optimizer = construct(pvqd.optimizer_args, x)
     loss, g = loss_and_grad(compute_uncompute)
-    history = zeros(pvqd.optimizer_args.maxiter, 3)
+    history = zeros(pvqd.optimizer_args.maxiter + 1, 4)
     initial_fid = 1 - loss
     fid = initial_fid
     success = :maxiter
@@ -370,6 +370,15 @@ function pvqd_step(pvqd::PVQD, params, delta, loss_and_grad::Function)
         end
         Optimisers.update!(optimizer, x, g)
 
+        history[i, 1] = loss
+        history[i, 2] = maximum(abs.(g))
+
+        # update the circuit
+        dispatch!(compute_uncompute, x)
+
+        pre_back_loss = loss_and_grad(compute_uncompute)[1]
+        history[i+1, 4] = pre_back_loss
+
         if pvqd.restrict_entanglement
             # we check if the entanglement is too high and move back if needed
             x, backsteps = move_back(x, pvqd)
@@ -379,18 +388,19 @@ function pvqd_step(pvqd::PVQD, params, delta, loss_and_grad::Function)
                 # reset momentum for enganglement parameters
                 optimizer.state[1][pvqd.entanglement_indices] .= 0
             end
+
             if pvqd.entanglement_args.reset_v && pvqd.optimizer_args.method == :adam
                 # reset v for enganglement parameters
                 optimizer.state[2][pvqd.entanglement_indices] .= 0
             end
+
 
         end
 
         # update the circuit
         dispatch!(compute_uncompute, x)
 
-        history[i, 1] = loss
-        history[i, 2] = maximum(abs.(g))
+
 
         termination = terminate(history, i, pvqd.optimizer_args)
         if termination != :continue
@@ -399,6 +409,9 @@ function pvqd_step(pvqd::PVQD, params, delta, loss_and_grad::Function)
         end
 
     end
+
+    final_loss = loss_and_grad(compute_uncompute)[1]
+    history[count+1, 1] = final_loss
 
     overhead =
         pvqd.restrict_entanglement ?

@@ -52,10 +52,10 @@ function get_sample_data(experiments, result_loc = "results")
 end
 
 function plot_sample_data(data)
-    raw_plot = gplot("Raw shots", "Error")
+    raw_plot = gplot(L"Raw shots $R$", "Error")
     plot!(raw_plot, xaxis = :log, yaxis = :log, legend = false)
 
-    tot_plot = gplot("Total shots", "Mean infidelity")
+    tot_plot = gplot(L"Total shots $R_{tot}$", "Mean infidelity")
     plot!(tot_plot, xaxis = :log, yaxis = :identity, legend = false)
 
     all_plot = gplot("Total shots", "Error")

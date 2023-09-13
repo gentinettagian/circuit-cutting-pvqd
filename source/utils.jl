@@ -68,10 +68,10 @@ end
 
 
 font_name = font(24, "Computer Modern")
-small_font = font(10, "Computer Modern")
-normal_font = font(11, "Computer Modern")
-large_font = font(12, "Computer Modern")
-footnotesize_font = font(9, "Computer Modern")
+small_font = font(12, "Computer Modern")
+normal_font = font(12, "Computer Modern")
+large_font = font(13, "Computer Modern")
+footnotesize_font = font(11, "Computer Modern")
 
 
 "Plot template"
@@ -99,6 +99,7 @@ function gplot(xlabel, ylabel, options = nothing; ratio = 1 / 1.62, width = 426.
         framestyle = :box,
         ymirror = ymirror,
         guidefont = small_font,
+        titlefont = small_font,
         #margin = 2.5mm,
         #widen = false,
     )

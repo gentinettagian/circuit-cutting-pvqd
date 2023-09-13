@@ -20,7 +20,7 @@ end
 
 
 
-color_scheme = ["#66C5CC", "#F6CF71", "#F89C74", "#DCB0F2", "#87C55F", "#B3B3B3"]
+color_scheme = ["#66C5CC", "#F6CF71", "#F89C74", "#87C55F", "#DCB0F2", "#B3B3B3"]
 
 "Get plotting styles according to the threshold."
 function styles(label; return_marker = false)
@@ -159,9 +159,35 @@ function prepare_data(exp_num::String, thresholds; results_loc = "results")
 end
 
 "Plot fidelity."
-function plot_fidelity(data, ex_states; options = nothing, infidelity = false)
-    p = gplot("Time", "Fidelity", options)
-    plot!(p, [0, 2], [1, 1], color = :dimgray, linewidth = 1, label = nothing)
+function plot_fidelity(
+    data,
+    ex_states;
+    options = nothing,
+    infidelity = false,
+    exact_legend = true,
+)
+    if infidelity
+        ylabel = "Infidelity"
+    else
+        ylabel = "Fidelity"
+    end
+    p = gplot("Time", ylabel, options)
+    if !infidelity
+        plot!(p, [0, 2], [1, 1], color = :dimgray, linewidth = 1, label = nothing)
+    end
+    if exact_legend
+        Plots.plot!(
+            p,
+            [],
+            [],
+            label = "Exact",
+            color = :black,
+            linestyle = :dash,
+            linewidth = 2,
+        )
+        print("added exact label")
+    end
+
 
     min_fid = 1.0
     for (label, plot_datas) in data
@@ -195,8 +221,14 @@ function plot_fidelity(data, ex_states; options = nothing, infidelity = false)
         min_fid = minimum([min_fid, minimum(mean_fidelities)])
         println("$(label): Final fidelity $(mean_fidelities[end]) ± $(std_fidelities[end])")
     end
-    min_fid = floor(min_fid * 50) / 50
-    yticks!(p, min_fid:0.02:1.0)
+    if !infidelity
+        min_fid = floor(min_fid * 50) / 50
+        yticks!(p, min_fid:0.02:1.0)
+    else
+        xlims!(p, (data[1][2][1].times[2], data[1][2][1].times[end]))
+        # plot!(p, yaxis = :log)
+    end
+
     return p
 end
 
@@ -313,7 +345,7 @@ end
 
 "Plot fidelity vs overhead."
 function plot_fid_ovhd(data; options = nothing, scale = :log)
-    p = gplot("Overhead", "Infidelity", options)
+    p = gplot("Threshold τ", "Mean infidelity", options)
     overhead_points = []
     fid_means = []
     for (label, plot_datas) in data
@@ -343,6 +375,13 @@ function plot_fid_ovhd(data; options = nothing, scale = :log)
                 color = color,
                 marker = marker,
             )
+            Plots.hline!(
+                p,
+                [1 - mean(mean_fidelities)],
+                label = nothing,
+                color = color,
+                style = :dash,
+            )
         else
             push!(overhead_points, mean_overheads[end])
             push!(fid_means, mean(mean_fidelities))
@@ -363,10 +402,48 @@ function plot_fid_ovhd(data; options = nothing, scale = :log)
     return p
 end
 
+"Plot optimization history at a given step."
+function plot_history(path, step, range)
+    result = load_object(path * "/result")
+    history = result.histories[step]
+
+    p1 = gplot("Iteration", "Loss", Dict("legend" => :topright, "yaxis" => :left))
+
+    filter = history[range[1]:range[2], 3] .> 0
+    Plots.scatter!(
+        p1,
+        [it for it = range[1]:range[2]][filter],
+        history[range[1]:range[2], 4][filter],
+        label = L"\mathcal{L}(\tilde{\varphi},\theta)",
+        marker = :utriangle,
+        color = color_scheme[2],
+    )
+    Plots.scatter!(
+        p1,
+        range[1]:range[2],
+        history[range[1]:range[2], 1],
+        label = L"\mathcal{L}(\varphi,\theta)",
+        marker = :star,
+        color = color_scheme[1],
+    )
+
+    p2 = Plots.plot(
+        round.(history[range[1]:range[2], 3]),
+        label = "Backsteps",
+        xlabel = "iteration",
+        ylabel = "backsteps",
+    )
+
+
+    return Plots.plot(p1, p2, layout = (2, 1))
+    return p1
+end
+
+
 
 # Spin chain experiments.
 begin
-    num = "805" # Choose experiment number
+    num = "008" # Choose experiment number
     results_loc = "results" # Directory where results are stored
 
     # Thresholds to be plotted
@@ -381,6 +458,15 @@ begin
         options = Dict("yaxis" => :left, "legend" => :bottomleft),
     )
     savefig("plots/exp$(num)_fid.svg")
+
+    # Fidelity plot without exact legend
+    p_fid = plot_fidelity(
+        data,
+        ex_states,
+        options = Dict("yaxis" => :left, "legend" => :bottomleft),
+        exact_legend = false,
+    )
+    savefig("plots/exp$(num)_fid_no_exact.svg")
 
     # Overhead plot
     p_ovhd = plot_overhead(
@@ -414,10 +500,16 @@ begin
         options = Dict("yaxis" => :left, "legend" => :topright),
     )
 
+
+
     ylims!(p_fo, (0.0, 0.075))
     xticks!(p_fo, [1, 1e1, 1e2, 1e3])
 
     savefig("plots/exp$(num)_fo.svg")
+
+    #p_loss = plot_history("results/20230807_$(num)_tau_1000.0_seed_1", 30, (2, 50))
+    #p_loss = plot_history("results/20230810_$(num)_tau_1000.0_seed_1", 30, (2, 50))
+    #savefig(p_loss, "plots/exp$(num)_loss.pdf")
 end
 
 # Two-leg ladder experiment
@@ -437,6 +529,8 @@ begin
         options = Dict("yaxis" => :left, "legend" => :bottomleft),
     )
     savefig("plots/exp$(num)_fid.svg")
+
+
 
     # Overhead plot
     p_ovhd = plot_overhead(
@@ -480,6 +574,24 @@ begin
     )
     savefig("plots/exp$(num)_fid.svg")
 
+    zoom_data = [datum[1] != "-1.0" ? datum : nothing for datum in data]
+    zoom_data = zoom_data[.!isnothing.(zoom_data)]
+    p_fid_zoom = plot_fidelity(
+        zoom_data,
+        ex_states,
+        options = Dict("yaxis" => :left, "legend" => :false),
+    )
+    Plots.plot!(
+        p_fid_zoom,
+        xlims = (1, 2),
+        yticks = [0.991, 0.995, 0.995, 0.999],
+        xticks = [1, 1.5, 2],
+        size = (200, 100),
+    )
+    savefig("plots/exp$(num)_fid_zoom.svg")
+
+
+
     # Overhead plot
     p_ovhd = plot_overhead(
         data,
@@ -505,4 +617,21 @@ begin
     )
     savefig("plots/exp$(num)_$(obs[1][10:end-8]).svg")
 
+    # Thresholds to be plotted
+    thresholds = [1.0, 10, Inf]
+
+    data, ex_states = prepare_data(num, thresholds, results_loc = results_loc)
+
+    # Fidelity plot
+    p_ifid = plot_fidelity(
+        data,
+        ex_states,
+        options = Dict("yaxis" => :left, "legend" => :bottomleft),
+        infidelity = true,
+    )
+    plot!(p_ifid, legend = false)
+    savefig("plots/exp$(num)_ifid.svg")
+
 end
+
+
