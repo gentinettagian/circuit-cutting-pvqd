@@ -18,7 +18,7 @@ begin
     g = 1
     dt = 0.05
     n_steps = 40
-    lr = 1e-3
+    lr = 1e-2
     # Termination criteria
     abstol = nothing
     gradtol = nothing
@@ -34,9 +34,9 @@ begin
     adam_args = (0.9, 0.999)
     initial_delta = 0.00
     loss = :local
-    #shots = 5000
-    shots = nothing
-    backstep_size = 0.001
+    shots = 5000
+    #shots = nothing
+    backstep_size = 0.00001
     guess_strategy = :delta
 
 
@@ -51,18 +51,18 @@ begin
         maxiter,
         :adam,
         adam_args,
-        :exact, # change to :param_shift for shot based experiments
+        :param_shift, # change to :param_shift for shot based experiments
         shift,
     )
 
 end
 
-thresholds = [1.0, 1.0, 100, 1000, Inf]
-seeds = 1:1:1
+thresholds = [-1.0, 1.0, 100, 1000, Inf]#, 5, 10, 25, 50, 250, 500, 5000]
+seeds = 1:1:10
 paths = []
 labels = []
 
-num = "xxx"
+num = "018"
 @threads for thresh in thresholds
     @threads for seed in seeds
         experiment_num = "$(num)_tau_$(thresh)_seed_$seed"

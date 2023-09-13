@@ -1,7 +1,7 @@
 
 include("load_results.jl")
 include("plot.jl")
-include("plot.jl")
+include("utils.jl")
 
 using Plots
 
@@ -53,15 +53,97 @@ function get_entropies(result, args, block_1, block_2)
     return entropies
 end
 
+"Get the time at which the threshold saturates."
+function get_saturation(result::PVQDResult, times, thresh)
+    overheads = result.overheads
+    for (i, overhead) in enumerate(overheads)
+        if abs(thresh - overhead) / thresh < 0.001
+            return times[i]
+        end
+    end
+end
+
+"Plot parameter evolution."
+function plot_params(result, args; legend = false)
+    _, param_types = get_ansatz(args, return_param_types = true)
+    dt = args["dt"]
+    n_steps = args["n_steps"]
+    color_dict = Dict(
+        :Rx => color_scheme[1],
+        :Ry => color_scheme[1],
+        :Rzz => color_scheme[2],
+        :RzzEnt => :red,
+    )
+    linewidth_dict = Dict(:Rx => 1, :Ry => 1, :Rzz => 1, :RzzEnt => 1)
+    params = result.params
+    t = range(0, stop = dt * n_steps, length = n_steps + 1)
+    plot = gplot("Time", "Parameter value")
+    for i = 1:length(params[1])
+        Plots.plot!(
+            plot,
+            t,
+            [p[i] for p in params],
+            label = nothing,
+            color = color_dict[param_types[i]],
+            linewidth = linewidth_dict[param_types[i]],
+        )
+    end
+    saturation = get_saturation(
+        result,
+        0:args["dt"]:args["dt"]*args["n_steps"],
+        args["entanglement_args"].threshold,
+    )
+    if args["entanglement_args"].threshold > 1 && args["entanglement_args"].threshold < Inf
+        vline!(plot, [saturation], label = "", color = :black, linestyle = :dash)
+    end
+    if legend != false
+        plot!(
+            plot,
+            [],
+            [],
+            linewidth = 1,
+            color = color_scheme[1],
+            label = "Single-qubit gates",
+        )
+        plot!(
+            plot,
+            [],
+            [],
+            linewidth = 1,
+            color = color_scheme[2],
+            label = "Two-qubit gates (within block)",
+        )
+        plot!(
+            plot,
+            [],
+            [],
+            linewidth = 2,
+            color = :red,
+            label = "Two-qubit gates (between blocks)",
+            legend = legend,
+        )
+    end
+    return plot
+end
 
 
 begin
-    num = "805"
+    num = "008"
     results_loc = "results"
     thresholds = [-1.0, 1.0, 100, 1000, Inf]
 
     all_results = get_all_results(num, get_combined_paths(results_loc))
     all_args = get_all_args(num, get_combined_paths(results_loc))
+
+    actual_τ = [
+        sum(args["entanglement_args"].gate_indices) != 0 ?
+        args["entanglement_args"].threshold : (args["cut_trotter"] ? 1.0 : -1.0) for
+        args in all_args
+    ]
+    order = reverse(sortperm(actual_τ))
+    all_results = all_results[order]
+    all_args = all_args[order]
+    actual_τ = actual_τ[order]
 
     block_1 = [3, 4]
     block_2 = [1, 2, 5, 6]
@@ -111,8 +193,77 @@ begin
             linewidth = 3,
             legend = :topleft,
         )
+        if thresh == 100.0 || thresh == 1000.0
+            saturation =
+                get_saturation(result, 0:args["dt"]:args["dt"]*args["n_steps"], thresh)
+            vline!(p, [saturation], label = "", color = color, linestyle = :dash)
+        end
     end
+
+    bpa_lab, bpa_col, bpa_sty = styles("-1.0")
+
+    Plots.plot!(p, [], [], label = bpa_lab, color = bpa_col, style = bpa_sty, linewidth = 3)
 
     savefig(p, "plots/exp$(num)_entanglement_entropy.svg")
     p
+end
+
+begin
+    num = "008"
+    τ = Inf
+    index = actual_τ .== τ
+    res = all_results[index][1]
+    args = all_args[index][1]
+    p2 = plot_params(res, args, legend = false)
+    title!(p2, "No threshold")
+    ylims!(p2, -2, 2)
+    sfont = font(18, "Computer Modern")
+    ffont = font(16, "Computer Modern")
+    plot!(
+        p2,
+        legendfont = sfont,
+        tickfont = ffont,
+        xlabelfont = sfont,
+        ylabelfont = sfont,
+        guidefont = sfont,
+        titlefont = sfont,
+    )
+
+    savefig(p2, "plots/exp$(num)_$(τ)_params.svg")
+
+    legend_plot = Plots.plot(
+        legendfont = sfont,
+        tickfont = ffont,
+        xlabelfont = sfont,
+        ylabelfont = sfont,
+        guidefont = sfont,
+        titlefont = sfont,
+    )
+    Plots.plot!(
+        legend_plot,
+        [],
+        [],
+        linewidth = 1,
+        color = color_scheme[1],
+        label = "Single-qubit gates",
+    )
+    Plots.plot!(
+        legend_plot,
+        [],
+        [],
+        linewidth = 1,
+        color = color_scheme[2],
+        label = "Two-qubit gates (within block)",
+    )
+    Plots.plot!(
+        legend_plot,
+        [],
+        [],
+        linewidth = 2,
+        color = :red,
+        label = "Two-qubit gates (between blocks)",
+    )
+    savefig(legend_plot, "plots/params_legend.svg")
+
+
 end
