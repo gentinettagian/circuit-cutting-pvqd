@@ -74,10 +74,10 @@ function plot_params(result, args; legend = false)
         :Rzz => color_scheme[2],
         :RzzEnt => :red,
     )
-    linewidth_dict = Dict(:Rx => 1, :Ry => 1, :Rzz => 1, :RzzEnt => 1)
+    linewidth_dict = Dict(:Rx => 2, :Ry => 2, :Rzz => 2, :RzzEnt => 3)
     params = result.params
     t = range(0, stop = dt * n_steps, length = n_steps + 1)
-    plot = gplot("Time", "Parameter value")
+    plot = gplot("Time", "Parameter value", ratio = 1 / 1.2)
     for i = 1:length(params[1])
         Plots.plot!(
             plot,
@@ -101,7 +101,7 @@ function plot_params(result, args; legend = false)
             plot,
             [],
             [],
-            linewidth = 1,
+            linewidth = 2,
             color = color_scheme[1],
             label = "Single-qubit gates",
         )
@@ -109,7 +109,7 @@ function plot_params(result, args; legend = false)
             plot,
             [],
             [],
-            linewidth = 1,
+            linewidth = 2,
             color = color_scheme[2],
             label = "Two-qubit gates (within block)",
         )
@@ -117,7 +117,7 @@ function plot_params(result, args; legend = false)
             plot,
             [],
             [],
-            linewidth = 2,
+            linewidth = 3,
             color = :red,
             label = "Two-qubit gates (between blocks)",
             legend = legend,
@@ -210,12 +210,12 @@ end
 
 begin
     num = "008"
-    τ = Inf
+    τ = 1000
     index = actual_τ .== τ
     res = all_results[index][1]
     args = all_args[index][1]
     p2 = plot_params(res, args, legend = false)
-    title!(p2, "No threshold")
+    title!(p2, "τ = 1000")
     ylims!(p2, -2, 2)
     sfont = font(18, "Computer Modern")
     ffont = font(16, "Computer Modern")
